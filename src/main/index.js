@@ -88,7 +88,7 @@ async function captureScreen() {
   const options = {
     types: ['screen'],
     thumbnailSize: { width: primaryDisplay.size.width, height: primaryDisplay.size.height },
-    screen:{
+    screen: {
       id: primaryDisplay.id
     }
   }
