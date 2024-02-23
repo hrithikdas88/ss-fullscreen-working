@@ -1,12 +1,29 @@
-import { app, shell, BrowserWindow, ipcMain, desktopCapturer, screen, dialog } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  desktopCapturer,
+  screen,
+  dialog,
+  powerMonitor,
+  globalShortcut
+} from 'electron'
 import { join } from 'path'
-const fs = require('fs')
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+// const localShortcut = require('electron-localshortcut')
+// const inputEvent = require('input-event')
+const robot = require('robotjs')
 
+let mainWindow
+let lastMousePos = robot.getMousePos()
+
+console.log(robot, 'robot')
+
+console.log(lastMousePos, 'lastmousepos')
 function createWindow() {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -52,60 +69,65 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // test idle with robot js
+
+  let idleTime = 0
+  const IDLE_THRESHOLD = 10000
+
+  const resetIdleTime = () => {
+    idleTime = 0
+  }
+
+  setInterval(() => {
+    const mousePos = robot.getMousePos()
+    console.log(mousePos, 'mousepos')
+
+    if (mousePos.x !== lastMousePos.x || mousePos.y !== lastMousePos.y) {
+      resetIdleTime()
+    } else {
+      idleTime += 1000
+
+      if (idleTime >= IDLE_THRESHOLD) {
+        console.log('User is idle!')
+      }
+    }
+
+    lastMousePos = mousePos
+  }, 1000)
+
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
+
+//ss-logic
+
 ipcMain.on('capture-screenshot', async (event) => {
   const screenShotInfo = await captureScreen()
 
-  console.log(screenShotInfo, 'ssinfo')
   const dataURL = screenShotInfo.toDataURL()
   event.sender.send('screenshot-captured', dataURL)
 })
 
 async function captureScreen() {
-  // Get the primary display
   const primaryDisplay = screen.getPrimaryDisplay()
-  console.log(primaryDisplay, 'primary')
-
-  // Get its size
-  const { width, height } = primaryDisplay.size
-
-  // Set up the options for the desktopCapturer
   const options = {
     types: ['screen'],
     thumbnailSize: { width: primaryDisplay.size.width, height: primaryDisplay.size.height },
-    screen:{
+    screen: {
       id: primaryDisplay.id
     }
   }
 
-  // Get the sources
   const sources = await desktopCapturer.getSources(options)
 
-  // console.log(sources, "sources")
-
-  // Find the primary display's source
-  // const primarySource = sources.find(({ display_id }) => display_id == primaryDisplay.id)
-
-  // Get the image
-  // console.log(primarySource)
   const image = sources[0].thumbnail
-  // console.log(image, "imgs")
-
-  // Return image data
   return image
 }
