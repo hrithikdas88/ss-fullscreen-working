@@ -19,7 +19,6 @@ if (process.contextIsolated) {
         )
       }
     })
-    contextBridge.exposeInMainWorld('power', powerMonitor.getSystemIdleTime())
   } catch (error) {
     console.error(error)
   }
