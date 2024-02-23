@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, powerMonitor } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
@@ -19,6 +19,7 @@ if (process.contextIsolated) {
         )
       }
     })
+    contextBridge.exposeInMainWorld('power', powerMonitor.getSystemIdleTime())
   } catch (error) {
     console.error(error)
   }

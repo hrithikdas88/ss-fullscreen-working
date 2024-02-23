@@ -1,12 +1,31 @@
-import { app, shell, BrowserWindow, ipcMain, desktopCapturer, screen, dialog } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  desktopCapturer,
+  screen,
+  dialog,
+  powerMonitor,
+  globalShortcut
+} from 'electron'
 import { join } from 'path'
 const fs = require('fs')
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+const localShortcut = require('electron-localshortcut')
+const inputEvent = require('input-event')
+const robot = require('robotjs')
 
+let mainWindow
+let lastMousePos = robot.getMousePos()
+
+console.log(robot, 'robot')
+
+console.log(lastMousePos, 'lastmousepos')
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -52,6 +71,32 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // test
+
+  let idleTime = 0
+  const IDLE_THRESHOLD = 10000
+
+  const resetIdleTime = () => {
+    idleTime = 0
+  }
+
+  setInterval(() => {
+    const mousePos = robot.getMousePos()
+    console.log(mousePos, 'mousepos')
+
+    if (mousePos.x !== lastMousePos.x || mousePos.y !== lastMousePos.y) {
+      resetIdleTime()
+    } else {
+      idleTime += 1000
+
+      if (idleTime >= IDLE_THRESHOLD) {
+        console.log('User is idle!')
+      }
+    }
+
+    lastMousePos = mousePos
+  }, 1000)
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
@@ -71,7 +116,6 @@ app.on('window-all-closed', () => {
 ipcMain.on('capture-screenshot', async (event) => {
   const screenShotInfo = await captureScreen()
 
-  console.log(screenShotInfo, 'ssinfo')
   const dataURL = screenShotInfo.toDataURL()
   event.sender.send('screenshot-captured', dataURL)
 })
@@ -79,7 +123,6 @@ ipcMain.on('capture-screenshot', async (event) => {
 async function captureScreen() {
   // Get the primary display
   const primaryDisplay = screen.getPrimaryDisplay()
-  console.log(primaryDisplay, 'primary')
 
   // Get its size
   const { width, height } = primaryDisplay.size

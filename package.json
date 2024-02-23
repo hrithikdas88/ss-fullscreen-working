@@ -21,6 +21,11 @@
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "desktop-screenshot": "^0.1.1",
+    "electron-localshortcut": "^3.2.1",
+    "electron-util": "^0.18.0",
+    "input-event": "^1.2.6",
+    "iohook": "^0.9.3",
+    "robotjs": "^0.6.0",
     "screenshot-desktop": "^1.15.0"
   },
   "devDependencies": {
