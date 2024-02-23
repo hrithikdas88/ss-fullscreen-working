@@ -1,3 +1,4 @@
+import Prolist from "./components/Prolist/Prolist"
 import Screenshot from "./components/Screenshots/Screenshot"
 
 function App() {
@@ -5,7 +6,8 @@ function App() {
    console.log(window)
   return (
     <>
-      <Screenshot />
+      {/* <Screenshot /> */}
+      <Prolist/>
     </>
   )
 }

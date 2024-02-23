@@ -7,9 +7,10 @@ import {
   screen,
   dialog,
   powerMonitor,
-  globalShortcut
+  globalShortcut,
+  Notification
 } from 'electron'
-import { join } from 'path'
+import path, { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 // const localShortcut = require('electron-localshortcut')
@@ -22,6 +23,41 @@ let lastMousePos = robot.getMousePos()
 console.log(robot, 'robot')
 
 console.log(lastMousePos, 'lastmousepos')
+
+//deep link logic
+
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('auth', process.execPath, [path.resolve(process.argv[1])])
+  }
+} else {
+  app.setAsDefaultProtocolClient('auth')
+}
+
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+
+    dialog.showErrorBox('Welcome Back', `You arrived from: ${commandLine.pop().slice(0, -1)}`)
+  })
+
+  app.whenReady().then(() => {
+    createWindow()
+  })
+
+  app.on('open-url', (event, url) => {
+    dialog.showErrorBox('Welcome Back', `You arrived from: ${url}`)
+  })
+}
+
+//app logic
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
@@ -72,7 +108,8 @@ app.whenReady().then(() => {
   // test idle with robot js
 
   let idleTime = 0
-  const IDLE_THRESHOLD = 10000
+  const IDLE_THRESHOLD = 60000
+  let dialogShown = false
 
   const resetIdleTime = () => {
     idleTime = 0
@@ -84,10 +121,25 @@ app.whenReady().then(() => {
 
     if (mousePos.x !== lastMousePos.x || mousePos.y !== lastMousePos.y) {
       resetIdleTime()
+      if (dialogShown) {
+        dialogShown = false
+      }
     } else {
       idleTime += 1000
 
       if (idleTime >= IDLE_THRESHOLD) {
+        const result = dialog.showMessageBoxSync({
+          type: 'info',
+          title: 'Idle Warning',
+          message: 'You have been idle for a while.',
+          buttons: ['OK', 'Cancel']
+        })
+
+        if (result === 0) {
+          resetIdleTime()
+          dialogShown = true
+        }
+
         console.log('User is idle!')
       }
     }
@@ -106,7 +158,6 @@ app.on('window-all-closed', () => {
   }
 })
 
-
 //ss-logic
 
 ipcMain.on('capture-screenshot', async (event) => {
@@ -114,6 +165,10 @@ ipcMain.on('capture-screenshot', async (event) => {
 
   const dataURL = screenShotInfo.toDataURL()
   event.sender.send('screenshot-captured', dataURL)
+  new Notification({
+    title: "ScreenShot taken",
+    body: "Sucesss"
+  }).show()
 })
 
 async function captureScreen() {
